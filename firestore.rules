@@ -2,9 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // CAMBIA este correo por tu correo de administrador (el mismo de CONFIG.adminEmail)
+    // Correo del administrador
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'tu-correo@gmail.com';
+      return request.auth != null && request.auth.token.email == 'diego.abricotc@gmail.com';
     }
     function signedIn() {
       return request.auth != null;
