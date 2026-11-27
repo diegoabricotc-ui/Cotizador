@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cotizador">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Cotizador de la tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Sofia+Sans+Condensed:wght@800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: herramienta de mesón, rápida y amable, para usar con el cliente al frente
+   IDEA: la boleta de la tienda; la cotización se arma como una boleta en vivo
+   PICTURE: la boleta con el total grande en azul, cuotas por banco y gift cards
+   COLOUR and TYPE: negro, blanco, azul #0066ff; Sofia Sans Condensed 800 para cifras, Instrument Sans para el resto
+   LAYOUT: barra negra con tabs; Cotizar con controles y boleta; en teléfono boleta arriba y total fijo abajo */
+:root{color-scheme:light;--bg:#fff;--ink:#111;--mute:#5b6270;--line:#e3e7ee;--card:#f2f4f7;--acc:#0066ff;--acc2:#0050c8;--dark:#111;--dark2:#26292f}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Instrument Sans",system-ui,sans-serif;overflow-x:clip;padding-bottom:84px}
+h1,h2,.big{font-family:"Sofia Sans Condensed","Arial Narrow",sans-serif;font-weight:800;line-height:1.05;margin:0}
+h2{font-size:28px;margin-bottom:12px}h3{font-size:17px;margin:22px 0 8px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{min-height:44px;padding:0 16px;border-radius:22px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-weight:600}
+button.on,button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.acc{background:var(--acc);color:#fff;border-color:var(--acc)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible,.item:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+select,input,textarea{font-size:16px;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;width:100%}
+label{display:block;font-size:14px;color:var(--mute);margin:12px 0 4px}
+.hidden{display:none!important}
+/* top */
+.top{background:var(--dark);color:#fff;position:sticky;top:0;z-index:5}
+.top .in{max-width:1240px;margin:auto;padding:calc(14px + env(safe-area-inset-top)) max(4vw,16px) 0;display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.top h1{font-size:clamp(26px,5vw,36px)}
+.top p{margin:2px 0 0;color:#aab3c2;font-size:13px}
+.who{font-size:13px;color:#aab3c2;text-align:right}.who button{min-height:32px;padding:0 12px;background:var(--dark2);border:0;color:#fff;font-size:13px;margin-top:4px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:12px max(4vw,16px);max-width:1240px;margin:auto}
+nav button{flex:none;background:var(--dark2);border:0;color:#fff}
+nav button.on{background:var(--acc)}
+main{max-width:1240px;margin:auto;padding:18px max(4vw,16px)}
+.view{display:none}.view.on{display:block}
+/* cotizar */
+.cot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:28px;align-items:start}
+.panel{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.panel>h3{margin:0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.seg button{padding:0 14px}
+.sw{position:relative;width:52px;height:30px;flex:none}
+.sw input{appearance:none;width:52px;height:30px;min-height:0;border-radius:15px;background:var(--line);border:0;padding:0;cursor:pointer}
+.sw input:checked{background:var(--acc)}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw input:checked::after{transform:translateX(22px)}
+.off .body{display:none}
+.res{border:1px solid var(--line);border-radius:12px;margin-top:6px;overflow:hidden}
+.res .r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}
+.res .r:last-child{border-bottom:0}
+.r small,.ci small{display:block;color:var(--mute);font-size:13px}
+.plus{width:44px;min-width:44px;padding:0;border-radius:22px;background:var(--acc);border:0;color:#fff;font-size:22px}
+.ci{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.qty{display:flex;align-items:center;gap:4px;flex:none}.qty button{width:36px;min-height:36px;padding:0;border-radius:18px}
+.ci input{width:110px;min-height:36px;text-align:right;padding:4px 8px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e6f0ff;color:var(--acc2);margin-left:4px;vertical-align:middle}
+.tag.g{background:#e7f6ee;color:#1a7a43}
+.sug{margin-top:10px;font-size:14px;color:var(--mute)}.sug button{min-height:36px;margin:4px 4px 0 0;font-size:14px}
+.up{margin-top:8px;font-size:14px;color:var(--acc2);font-weight:600}
+.note{font-size:13px;color:var(--mute);margin:10px 0}
+.warn{background:#eaf2ff;color:#0b3d91;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+.boleta{position:sticky;top:150px;background:#fff;border-radius:6px;padding:22px 20px 24px;box-shadow:0 1px 0 var(--line),0 18px 40px #0002;border-top:8px solid var(--acc)}
+.boleta .h{display:flex;justify-content:space-between;color:var(--mute);font-size:14px}
+.ln{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.ln span:last-child,.num{white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.ln.neg span:last-child{color:var(--acc2);font-weight:600}
+.empty{color:var(--mute);padding:14px 0}
+.tot{margin-top:14px}.tot .big{font-size:clamp(42px,9vw,60px);color:var(--acc)}
+.cuota{font-size:19px;font-weight:600;margin-top:4px}
+.qs{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px}
+.qs div{background:var(--card);border-radius:10px;padding:7px 9px;font-size:12px;color:var(--mute)}.qs b{display:block;color:var(--ink);font-size:14px;white-space:nowrap}
+.gc{margin-top:12px;padding:10px 12px;background:var(--card);border-radius:10px;font-size:14px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.acts>*{flex:1 1 140px}
+.mini{position:fixed;left:0;right:0;bottom:0;background:var(--dark);color:#fff;padding:10px max(4vw,16px) calc(10px + env(safe-area-inset-bottom));display:none;justify-content:space-between;align-items:center;z-index:9}
+.mini .big{font-size:28px;color:#5c9dff}
+/* listas */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-top:10px}.chips button{flex:none}
+.list{display:grid;gap:8px;margin-top:12px}
+.item{border:1px solid var(--line);border-radius:14px;padding:13px 16px;cursor:pointer;background:#fff}
+.item.open{border:2px solid var(--acc)}
+.item .t{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.item .t b{font-size:17px}.item .t span{color:var(--mute);font-size:14px;white-space:nowrap}
+.det{margin-top:12px;cursor:auto}
+.plan{background:var(--card);border-radius:12px;padding:12px;margin-top:8px}
+.plan .pt{display:flex;justify-content:space-between;gap:10px;font-weight:600;align-items:baseline}
+.plan .pt .num{font-family:"Sofia Sans Condensed",sans-serif;font-size:24px;font-weight:800;color:var(--acc)}
+.grades{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.grade{background:var(--card);border-radius:12px;padding:12px;text-align:center}
+.grade small{color:var(--mute);display:block}.grade .big{font-size:30px}.grade.a .big{color:var(--acc)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:13px;color:var(--mute);font-weight:600}td.num,th.num{text-align:right}
+.scroll{overflow-x:auto}td input{min-height:40px;padding:6px 8px}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;background:var(--card);border-radius:12px;padding:12px}
+.steps li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:15px;background:var(--acc);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 18px;border-radius:20px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+/* login */
+.login{min-height:100vh;padding-top:calc(40px + env(safe-area-inset-top))!important;background:var(--dark);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:40px 24px}
+.login .box{max-width:400px;width:100%;margin:auto}
+.login h1{font-size:40px;margin-top:18px}.login p{color:#aab3c2}
+.login label{color:#aab3c2}.login input{background:#1c1e22;border-color:#33363d;color:#fff;min-height:48px}
+.login .go{width:100%;margin-top:16px;min-height:50px;border-radius:25px;background:var(--acc);border:0;color:#fff;font-weight:700}
+.login .lnk{background:none;border:0;color:#8ab4ff;width:100%;margin-top:18px;font-weight:500}
+.login .err{color:#ff9b9b;font-size:14px;min-height:20px;margin-top:8px}
+.logo{width:56px;height:56px;border-radius:16px;background:var(--acc);display:flex;align-items:center;justify-content:center}
+@media(max-width:860px){.cot{grid-template-columns:minmax(0,1fr)}.boleta{position:static;order:-1}.mini{display:flex}}
+@media(min-width:861px){body{padding-bottom:20px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<section class="login hidden" id="login">
+  <div class="box">
+    <div class="logo"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></div>
+    <h1>Cotizador de la tienda</h1>
+    <p>Trade In, AppleCare+, Onsafe y cuotas en un solo lugar.</p>
+    <form id="f-login">
+      <label for="l-nombre">Tu nombre</label>
+      <input id="l-nombre" autocomplete="name" required>
+      <div id="l-admin" class="hidden"><label for="l-mail">Correo de administrador</label><input id="l-mail" type="email" autocomplete="username"></div>
+      <label for="l-clave" id="l-clave-lb">Clave de la tienda</label>
+      <input id="l-clave" type="password" autocomplete="current-password" required>
+      <button class="go" type="submit">Entrar</button>
+      <div class="err" id="l-err" role="alert"></div>
+    </form>
+    <button class="lnk" id="l-toggle" type="button">Entrar como administrador</button>
+  </div>
+</section>
+
+<div id="app" class="hidden">
+<header class="top">
+  <div class="in">
+    <div><h1>Cotizador</h1><p id="vigencia"></p></div>
+    <div class="who"><span id="who"></span><br><button id="salir">Salir</button></div>
+  </div>
+  <nav id="tabs">
+    <button data-v="cotizar" class="on">Cotizar</button>
+    <button data-v="cuotas">Cuotas</button>
+    <button data-v="tradein">Trade In</button>
+    <button data-v="applecare">AppleCare+</button>
+    <button data-v="productos">Productos</button>
+    <button data-v="guia">Guía</button>
+    <button data-v="precios" id="tab-precios" class="hidden">Precios</button>
+  </nav>
+</header>
+<main>
+<section class="view on" id="v-cotizar">
+  <div class="cot">
+    <div>
+      <div class="panel">
+        <h3>Productos de la compra</h3>
+        <label for="c-q">Buscar o crear producto</label>
+        <input id="c-q" placeholder="Ej: 17 pro max, enchufe, funda" autocomplete="off">
+        <div id="c-res"></div>
+        <div id="c-cart"></div>
+        <div id="c-sug" class="sug"></div>
+      </div>
+      <div class="panel">
+        <h3>AppleCare+</h3>
+        <label for="a-eq">Equipo a cubrir</label>
+        <select id="a-eq"></select>
+        <div class="seg" id="a-plan"></div>
+        <div class="up" id="a-up"></div>
+      </div>
+      <div class="panel">
+        <h3>Onsafe (robo y hurto)</h3>
+        <div id="o-body"></div>
+      </div>
+      <div class="panel" id="p-ti">
+        <h3>Trade In <span class="sw"><input type="checkbox" id="t-on" aria-label="Incluir trade in"></span></h3>
+        <div class="body">
+          <label for="t-model">Equipo que entrega el cliente</label>
+          <select id="t-model"></select>
+          <label>Capacidad</label><div class="seg" id="t-cap"></div>
+          <label>Grado</label><div class="seg" id="t-grado"><button data-g="a" class="on">Grado A</button><button data-g="b">Grado B</button></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Forma de pago</h3>
+        <label>Banco de la tarjeta</label>
+        <div class="seg" id="b-banco"></div>
+        <label>Cuotas</label>
+        <div class="seg" id="b-n"></div>
+        <div id="b-warn"></div>
+      </div>
+    </div>
+    <aside class="boleta" aria-live="polite">
+      <div class="h"><span>Cotización</span><span id="r-fecha"></span></div>
+      <div id="r-lines"></div>
+      <div class="tot"><div class="h"><span>Total a pagar</span><span id="r-upb"></span></div><div class="big" id="r-total"></div><div class="cuota" id="r-cuota"></div></div>
+      <div class="qs" id="r-qs"></div>
+      <div class="gc" id="r-gc"></div>
+      <div class="acts"><button class="pri" id="r-copy">Copiar cotización</button><button id="r-new">Nueva cotización</button></div>
+    </aside>
+  </div>
+</section>
+
+<section class="view" id="v-cuotas">
+  <h2>Cuotas sin interés</h2>
+  <div class="grid2">
+    <div>
+      <label for="q-monto">Monto</label><input id="q-monto" inputmode="numeric" placeholder="Ej: 1.549.990">
+      <label>Banco</label><div class="seg" id="q-banco"></div>
+      <label>Tipo de compra</label>
+      <div class="seg" id="q-tipo"><button data-t="madre" class="on">Con producto madre</button><button data-t="sin">Sin producto madre</button></div>
+      <p class="note">Producto madre: iPhone, Mac o iPad. Sin producto madre: Watch, AirPods, Beats, HomePod, AppleCare solo y accesorios.</p>
+    </div>
+    <div id="q-res"></div>
+  </div>
+</section>
+
+<section class="view" id="v-tradein">
+  <h2>Trade In</h2>
+  <input id="ti-q" placeholder="Buscar modelo, ej: 15 pro" aria-label="Buscar modelo">
+  <p class="note">Grado A: perfectas condiciones, sin rayas ni golpes. Grado B: marcas de uso leves, 100% funcional.</p>
+  <div class="list" id="ti-list"></div>
+</section>
+
+<section class="view" id="v-applecare">
+  <h2>AppleCare+</h2>
+  <div class="chips" id="ac-cat"></div>
+  <input id="ac-q" placeholder="Buscar modelo" aria-label="Buscar modelo" style="margin-top:10px">
+  <div class="list" id="ac-list"></div>
+  <p class="note">Términos, coberturas y deducibles: <a href="https://www.apple.com/cl/applecare/">apple.com/cl/applecare</a></p>
+</section>
+
+<section class="view" id="v-productos">
+  <h2>Productos creados</h2>
+  <p class="note">Lo que crea cualquier vendedor queda disponible para todos. Solo el administrador puede cambiar precios o borrar.</p>
+  <div class="panel">
+    <h3>Crear producto</h3>
+    <div class="grid2">
+      <div><label for="np-n">Nombre</label><input id="np-n" placeholder="Ej: Enchufe 20W"></div>
+      <div><label for="np-p">Precio</label><input id="np-p" inputmode="numeric" placeholder="Ej: 23.990"></div>
+    </div>
+    <label>Categoría</label><div class="seg" id="np-cat"></div>
+    <div class="acts"><button class="acc" id="np-save">Guardar producto</button></div>
+  </div>
+  <input id="pr-q" placeholder="Buscar en productos creados" aria-label="Buscar producto">
+  <div class="scroll"><table><thead><tr><th>Producto</th><th>Categoría</th><th class="num">Precio</th><th>Creado por</th><th></th></tr></thead><tbody id="pr-list"></tbody></table></div>
+</section>
+
+<section class="view" id="v-guia">
+  <h2>Guía rápida</h2>
+  <div class="grid2">
+    <div>
+      <h3>Trade In paso a paso</h3>
+      <ol class="steps">
+        <li>Abrir NSYS Diagnostics y entrar a Buyback.</li>
+        <li>Añadir pedido.</li>
+        <li>Evaluar estética y batería para definir Grado A o B.</li>
+        <li>Ingresar datos del cliente y comprobante de propiedad.</li>
+        <li>Correr la app NSYS-TEST en el iPhone del cliente.</li>
+        <li>Imprimir el certificado en 2 copias.</li>
+        <li>Pagar con gift cards en POS One (F7, BuyBack).</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Cuotas sin interés por banco</h3>
+      <div class="scroll"><table><thead><tr><th>Banco</th><th>Con producto madre</th><th>Sin producto madre</th></tr></thead><tbody id="g-bancos"></tbody></table></div>
+      <div class="warn">En Banco de Chile y Edwards, cualquier número de cuotas distinto a los tramos indicados se procesa con interés para el cliente.</div>
+      <h3>iPhone for Life</h3>
+      <p id="g-ifl" class="note" style="font-size:15px;color:var(--ink)"></p>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-precios">
+  <h2>Precios (administrador)</h2>
+  <div class="warn" id="pa-status">Los cambios se guardan en la nube cuando tocas "Guardar en la nube". Ahí les llegan a todos los vendedores.</div>
+  <div class="acts"><button class="acc" id="pa-save" disabled>Guardar en la nube</button><button id="pa-undo" disabled>Descartar cambios</button></div>
+  <label for="pa-vig">Vigencia</label><input id="pa-vig">
+  <label for="pa-ifl">iPhone for Life (modelos separados por coma)</label><input id="pa-ifl">
+  <h3>Cuotas sin interés por banco</h3>
+  <p class="note">Escribe los tramos así: 1-24 o 1-3,6,12,18,24</p>
+  <div class="scroll"><table><thead><tr><th>Banco</th><th>Con producto madre</th><th>Sin producto madre</th><th></th></tr></thead><tbody id="pa-bancos"></tbody></table></div>
+  <button data-add="bancos">Agregar banco</button>
+  <h3>Equipos y AppleCare+</h3>
+  <div class="scroll"><table><thead><tr><th>Categoría</th><th>Equipo</th><th class="num">Precio</th><th class="num">AC daños + pérdida</th><th class="num">AC solo daños</th><th></th></tr></thead><tbody id="pa-eq"></tbody></table></div>
+  <button data-add="eq">Agregar equipo</button>
+  <h3>Onsafe (tramos)</h3>
+  <div class="scroll"><table><thead><tr><th>Categoría</th><th class="num">Desde</th><th class="num">Hasta</th><th class="num">Plan 24 meses</th><th class="num">Plan 12 meses</th><th></th></tr></thead><tbody id="pa-os"></tbody></table></div>
+  <button data-add="os">Agregar tramo</button>
+  <h3>Trade In</h3>
+  <p class="note">Si escribes solo el Grado A, el B se calcula como el 70%.</p>
+  <div class="scroll"><table><thead><tr><th>Modelo</th><th>Capacidad</th><th class="num">Grado A</th><th class="num">Grado B</th><th></th></tr></thead><tbody id="pa-ti"></tbody></table></div>
+  <button data-add="ti">Agregar modelo</button>
+</section>
+</main>
+<div class="mini"><div><div style="font-size:12px;opacity:.7">Total</div><div class="big" id="m-total"></div></div><div id="m-cuota" style="text-align:right;font-weight:600;font-size:14px"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// =====================================================================
+// CONFIGURACIÓN: pega aquí los datos de tu proyecto de Firebase.
+// Mientras apiKey diga "PEGAR_AQUI" la app funciona en MODO DEMO
+// (sin login, datos guardados solo en este navegador).
+// =====================================================================
+const CONFIG = {
+  firebase: {
+    apiKey: "PEGAR_AQUI",
+    authDomain: "",
+    projectId: "",
+    appId: ""
+  },
+  tiendaEmail: "tienda@tu-dominio.cl",   // cuenta compartida de los vendedores
+  adminEmail: "tu-correo@gmail.com"       // tu cuenta de administrador
+};
+// =====================================================================
+{
+const DEMO = CONFIG.firebase.apiKey === "PEGAR_AQUI";
+const DEF = {"vig": "Precios septiembre 2026", "eq": [{"cat": "iPhone", "n": "iPhone 18 Pro", "p": 0, "dp": 359990, "d": 269990}, {"cat": "iPhone", "n": "iPhone 18 Pro Max", "p": 1699990, "dp": 359990, "d": 269990}, {"cat": "iPhone", "n": "iPhone Duo", "p": 0, "dp": 499990, "d": 399990}, {"cat": "iPhone", "n": "iPhone 17 Pro", "p": 1429990, "dp": 359990, "d": 269990}, {"cat": "iPhone", "n": "iPhone 17 Pro Max", "p": 1549990, "dp": 359990, "d": 269990}, {"cat": "iPhone", "n": "iPhone 17 Air", "p": 1299990, "dp": 359990, "d": 259990}, {"cat": "iPhone", "n": "iPhone 17", "p": 999990, "dp": 319990, "d": 219990}, {"cat": "iPhone", "n": "iPhone 17e", "p": 0, "dp": 249990, "d": 159990}, {"cat": "iPhone", "n": "iPhone 16 Pro", "p": 0, "dp": 314990, "d": 229990}, {"cat": "iPhone", "n": "iPhone 16 Pro Max", "p": 0, "dp": 314990, "d": 229990}, {"cat": "iPhone", "n": "iPhone 16 Plus", "p": 0, "dp": 263990, "d": 189990}, {"cat": "iPhone", "n": "iPhone 16", "p": 0, "dp": 309990, "d": 189990}, {"cat": "iPhone", "n": "iPhone 16e", "p": 0, "dp": 249990, "d": 159990}, {"cat": "iPhone", "n": "iPhone 15 Pro", "p": 0, "dp": 314990, "d": 229990}, {"cat": "iPhone", "n": "iPhone 15 Pro Max", "p": 0, "dp": 314990, "d": 229990}, {"cat": "iPhone", "n": "iPhone 15 Plus", "p": 0, "dp": 263990, "d": 189990}, {"cat": "iPhone", "n": "iPhone 15", "p": 0, "dp": 299990, "d": 219990}, {"cat": "iPhone", "n": "iPhone 14 Pro", "p": 0, "dp": 314990, "d": 229990}, {"cat": "iPhone", "n": "iPhone 14 Pro Max", "p": 0, "dp": 314990, "d": 229990}, {"cat": "iPhone", "n": "iPhone 14 Plus", "p": 0, "dp": 274990, "d": 189990}, {"cat": "iPhone", "n": "iPhone 14", "p": 0, "dp": 264990, "d": 179990}, {"cat": "iPhone", "n": "iPhone 13", "p": 0, "dp": 264990, "d": 179990}, {"cat": "iPhone", "n": "iPhone 13 mini", "p": 0, "dp": 264990, "d": 179990}, {"cat": "iPhone", "n": "iPhone 12", "p": 0, "dp": 264990, "d": 179990}, {"cat": "iPhone", "n": "iPhone SE (3ra gen)", "p": 0, "dp": 167990, "d": 89990}, {"cat": "iPad", "n": "iPad Pro 13 M5", "p": 0, "dp": 0, "d": 219990}, {"cat": "iPad", "n": "iPad Pro 11 M5", "p": 0, "dp": 0, "d": 189990}, {"cat": "iPad", "n": "iPad Air 13 M4", "p": 0, "dp": 0, "d": 139990}, {"cat": "iPad", "n": "iPad Air 11 M4", "p": 0, "dp": 0, "d": 99990}, {"cat": "iPad", "n": "iPad mini A17 Pro", "p": 0, "dp": 0, "d": 89990}, {"cat": "Mac", "n": "MacBook Pro 16 M5/M5 Max", "p": 0, "dp": 0, "d": 459990}, {"cat": "Mac", "n": "MacBook Pro 14 M5/M5 Max", "p": 0, "dp": 0, "d": 319990}, {"cat": "Mac", "n": "MacBook Air 15 M5", "p": 0, "dp": 0, "d": 269990}, {"cat": "Mac", "n": "MacBook Air 13 M5", "p": 0, "dp": 0, "d": 239990}, {"cat": "Mac", "n": "MacBook Neo (A18 Pro)", "p": 0, "dp": 0, "d": 169990}, {"cat": "Mac", "n": "Mac Studio", "p": 0, "dp": 0, "d": 199990}, {"cat": "Mac", "n": "Mac mini", "p": 0, "dp": 0, "d": 119990}, {"cat": "Mac", "n": "Studio Display 2026", "p": 0, "dp": 0, "d": 159990}, {"cat": "Mac", "n": "Studio Display XDR", "p": 0, "dp": 0, "d": 319990}, {"cat": "Watch", "n": "Apple Watch Ultra 4", "p": 0, "dp": 0, "d": 129990}, {"cat": "Watch", "n": "Apple Watch Ultra 3", "p": 0, "dp": 0, "d": 119990}, {"cat": "Watch", "n": "Apple Watch Serie 12", "p": 0, "dp": 0, "d": 99990}, {"cat": "Watch", "n": "Apple Watch S11", "p": 0, "dp": 0, "d": 99990}, {"cat": "Watch", "n": "Apple Watch S10", "p": 0, "dp": 0, "d": 99990}, {"cat": "Watch", "n": "Apple Watch SE 3ra gen", "p": 0, "dp": 0, "d": 59990}, {"cat": "Watch", "n": "Apple Watch SE 2da gen", "p": 0, "dp": 0, "d": 59990}, {"cat": "Audio", "n": "AirPods Max", "p": 0, "dp": 0, "d": 62990}, {"cat": "Audio", "n": "AirPods Pro 3", "p": 0, "dp": 0, "d": 49990}, {"cat": "Audio", "n": "AirPods Pro 2da gen", "p": 0, "dp": 0, "d": 49990}, {"cat": "Audio", "n": "AirPods 5", "p": 0, "dp": 0, "d": 34990}, {"cat": "Audio", "n": "Beats", "p": 0, "dp": 0, "d": 30990}, {"cat": "Audio", "n": "HomePod", "p": 0, "dp": 0, "d": 40990}, {"cat": "Audio", "n": "HomePod mini", "p": 0, "dp": 0, "d": 19990}, {"cat": "TV", "n": "Apple TV", "p": 0, "dp": 0, "d": 30990}], "ti": [{"m": "iPhone 17 Pro Max", "c": "256 GB", "a": 900000, "b": 630000}, {"m": "iPhone 17 Pro Max", "c": "512 GB", "a": 950000, "b": 665000}, {"m": "iPhone 17 Pro Max", "c": "1 TB", "a": 1000000, "b": 700000}, {"m": "iPhone 17 Pro Max", "c": "2 TB", "a": 1050000, "b": 735000}, {"m": "iPhone 17 Pro", "c": "256 GB", "a": 850000, "b": 595000}, {"m": "iPhone 17 Pro", "c": "512 GB", "a": 900000, "b": 630000}, {"m": "iPhone 17 Pro", "c": "1 TB", "a": 950000, "b": 665000}, {"m": "iPhone 17 Air", "c": "256 GB", "a": 700000, "b": 490000}, {"m": "iPhone 17 Air", "c": "512 GB", "a": 725000, "b": 507500}, {"m": "iPhone 17 Air", "c": "1 TB", "a": 750000, "b": 525000}, {"m": "iPhone 17", "c": "256 GB", "a": 650000, "b": 455000}, {"m": "iPhone 17", "c": "512 GB", "a": 750000, "b": 525000}, {"m": "iPhone 17e", "c": "256 GB", "a": 450000, "b": 315000}, {"m": "iPhone 17e", "c": "512 GB", "a": 475000, "b": 332500}, {"m": "iPhone 16 Pro Max", "c": "256 GB", "a": 725000, "b": 507500}, {"m": "iPhone 16 Pro Max", "c": "512 GB", "a": 750000, "b": 525000}, {"m": "iPhone 16 Pro Max", "c": "1 TB", "a": 775000, "b": 542500}, {"m": "iPhone 16 Pro", "c": "128 GB", "a": 600000, "b": 420000}, {"m": "iPhone 16 Pro", "c": "256 GB", "a": 650000, "b": 455000}, {"m": "iPhone 16 Pro", "c": "512 GB", "a": 675000, "b": 472500}, {"m": "iPhone 16 Pro", "c": "1 TB", "a": 700000, "b": 490000}, {"m": "iPhone 16 Plus", "c": "128 GB", "a": 475000, "b": 332500}, {"m": "iPhone 16 Plus", "c": "256 GB", "a": 525000, "b": 367500}, {"m": "iPhone 16 Plus", "c": "512 GB", "a": 550000, "b": 385000}, {"m": "iPhone 16", "c": "128 GB", "a": 550000, "b": 385000}, {"m": "iPhone 16", "c": "256 GB", "a": 600000, "b": 420000}, {"m": "iPhone 16", "c": "512 GB", "a": 625000, "b": 437500}, {"m": "iPhone 16e", "c": "128 GB", "a": 350000, "b": 245000}, {"m": "iPhone 16e", "c": "256 GB", "a": 375000, "b": 262500}, {"m": "iPhone 16e", "c": "512 GB", "a": 400000, "b": 280000}, {"m": "iPhone 15 Pro Max", "c": "256 GB", "a": 400000, "b": 280000}, {"m": "iPhone 15 Pro Max", "c": "512 GB", "a": 450000, "b": 315000}, {"m": "iPhone 15 Pro Max", "c": "1 TB", "a": 550000, "b": 385000}, {"m": "iPhone 15 Pro", "c": "128 GB", "a": 425000, "b": 297500}, {"m": "iPhone 15 Pro", "c": "256 GB", "a": 500000, "b": 350000}, {"m": "iPhone 15 Pro", "c": "512 GB", "a": 525000, "b": 367500}, {"m": "iPhone 15 Pro", "c": "1 TB", "a": 550000, "b": 385000}, {"m": "iPhone 15 Plus", "c": "128 GB", "a": 325000, "b": 227500}, {"m": "iPhone 15 Plus", "c": "256 GB", "a": 375000, "b": 262500}, {"m": "iPhone 15 Plus", "c": "512 GB", "a": 425000, "b": 297500}, {"m": "iPhone 15", "c": "128 GB", "a": 400000, "b": 280000}, {"m": "iPhone 15", "c": "256 GB", "a": 425000, "b": 297500}, {"m": "iPhone 15", "c": "512 GB", "a": 450000, "b": 315000}, {"m": "iPhone 14 Pro Max", "c": "128 GB", "a": 350000, "b": 245000}, {"m": "iPhone 14 Pro Max", "c": "256 GB", "a": 375000, "b": 262500}, {"m": "iPhone 14 Pro Max", "c": "512 GB", "a": 475000, "b": 332500}, {"m": "iPhone 14 Pro Max", "c": "1 TB", "a": 500000, "b": 350000}, {"m": "iPhone 14 Pro", "c": "128 GB", "a": 350000, "b": 245000}, {"m": "iPhone 14 Pro", "c": "256 GB", "a": 400000, "b": 280000}, {"m": "iPhone 14 Pro", "c": "512 GB", "a": 425000, "b": 297500}, {"m": "iPhone 14 Pro", "c": "1 TB", "a": 450000, "b": 315000}, {"m": "iPhone 14 Plus", "c": "128 GB", "a": 275000, "b": 192500}, {"m": "iPhone 14 Plus", "c": "256 GB", "a": 300000, "b": 210000}, {"m": "iPhone 14 Plus", "c": "512 GB", "a": 350000, "b": 245000}, {"m": "iPhone 14", "c": "128 GB", "a": 300000, "b": 210000}, {"m": "iPhone 14", "c": "256 GB", "a": 325000, "b": 227500}, {"m": "iPhone 14", "c": "512 GB", "a": 350000, "b": 245000}, {"m": "iPhone 13 Pro Max", "c": "128 GB", "a": 350000, "b": 245000}, {"m": "iPhone 13 Pro Max", "c": "256 GB", "a": 375000, "b": 262500}, {"m": "iPhone 13 Pro Max", "c": "512 GB", "a": 400000, "b": 280000}, {"m": "iPhone 13 Pro Max", "c": "1 TB", "a": 450000, "b": 315000}, {"m": "iPhone 13 Pro", "c": "128 GB", "a": 300000, "b": 210000}, {"m": "iPhone 13 Pro", "c": "256 GB", "a": 300000, "b": 210000}, {"m": "iPhone 13 Pro", "c": "512 GB", "a": 325000, "b": 227500}, {"m": "iPhone 13 Pro", "c": "1 TB", "a": 400000, "b": 280000}, {"m": "iPhone 13", "c": "128 GB", "a": 225000, "b": 157500}, {"m": "iPhone 13", "c": "256 GB", "a": 250000, "b": 175000}, {"m": "iPhone 13", "c": "512 GB", "a": 275000, "b": 192500}, {"m": "iPhone 13 mini", "c": "128 GB", "a": 200000, "b": 140000}, {"m": "iPhone 13 mini", "c": "256 GB", "a": 225000, "b": 157500}, {"m": "iPhone 13 mini", "c": "512 GB", "a": 250000, "b": 175000}, {"m": "iPhone 12 Pro Max", "c": "128 GB", "a": 150000, "b": 105000}, {"m": "iPhone 12 Pro Max", "c": "256 GB", "a": 150000, "b": 105000}, {"m": "iPhone 12 Pro Max", "c": "512 GB", "a": 150000, "b": 105000}, {"m": "iPhone 12 Pro", "c": "128 GB", "a": 125000, "b": 87500}, {"m": "iPhone 12 Pro", "c": "256 GB", "a": 125000, "b": 87500}, {"m": "iPhone 12 Pro", "c": "512 GB", "a": 125000, "b": 87500}, {"m": "iPhone 12", "c": "64 GB", "a": 150000, "b": 105000}, {"m": "iPhone 12", "c": "128 GB", "a": 175000, "b": 122500}, {"m": "iPhone 12", "c": "256 GB", "a": 200000, "b": 140000}, {"m": "iPhone 12 mini", "c": "64 GB", "a": 100000, "b": 70000}, {"m": "iPhone 12 mini", "c": "128 GB", "a": 100000, "b": 70000}, {"m": "iPhone 12 mini", "c": "256 GB", "a": 100000, "b": 70000}], "os": [{"cat": "Audio", "min": 101000, "max": 200000, "p24": 40990, "p12": 29990}], "bancos": [{"n": "Santander", "madre": "1-24", "sin": "1-12"}, {"n": "BCI", "madre": "1-24", "sin": "1-12"}, {"n": "Internacional", "madre": "1-24", "sin": "1-12"}, {"n": "Scotiabank", "madre": "1-24", "sin": "1-12"}, {"n": "Itaú", "madre": "1-24", "sin": "1-12"}, {"n": "Banco de Chile", "madre": "1-3,6,12,18,24", "sin": "1-3,6,12"}, {"n": "Edwards", "madre": "1-3,6,12,18,24", "sin": "1-3,6,12"}], "ifl": ["iPhone 18 Pro", "iPhone 18 Pro Max", "iPhone 17 Pro", "iPhone 17 Pro Max", "iPhone 17", "iPhone Duo"]};
+const CATS = ["iPhone","iPad","Mac","Watch","Audio","TV","Accesorio"];
+const MADRE = ["iPhone","iPad","Mac"];
+const COMMON = [1,2,3,6,10,12,18,24];
+const PL = {dp:"Daños + pérdida", d:"Solo daños"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clp = n => "$" + Math.round(n || 0).toLocaleString("es-CL");
+const num = s => +String(s).replace(/[^\d]/g, "") || 0;
+const clone = o => JSON.parse(JSON.stringify(o));
+const ls = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }, set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
+const toast = t => { const e = $("toast"); e.textContent = t; e.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("show"), 1900); };
+const parseTramos = s => { const out = new Set(); String(s || "").split(",").forEach(p => { const m = p.trim().match(/^(\d+)\s*-\s*(\d+)$/); if (m) { for (let i = +m[1]; i <= +m[2] && i <= 60; i++) out.add(i); } else if (/^\d+$/.test(p.trim())) out.add(+p.trim()); }); return [...out].sort((a,b) => a-b); };
+const fecha = f => { const d = f && f.toDate ? f.toDate() : (f ? new Date(f) : null); return d && !isNaN(d) ? d.toLocaleDateString("es-CL") : ""; };
+
+// ---------- estado ----------
+let P = clone(DEF);          // precios
+let PROD = [];               // productos creados
+let isAdmin = false, hasCloudPrices = false;
+let nombre = ls.get("cot-nombre") || "";
+const S = { cart: [], ac: -1, acPlan: "no", osItem: 0, osPlan: "no", tiOn: false, tiModel: "iPhone 15 Pro", ti: -1, g: "a", banco: "Santander", n: 12, q: "", acCat: "iPhone", acOpen: -1, tiOpen: "", tiSel: -1, qBanco: "Santander", qTipo: "madre", npCat: "Accesorio" };
+let E = null, dirty = false; // copia editable de admin
+
+// ---------- backend ----------
+const DB = {};
+async function initBackend(){
+  if (DEMO) {
+    isAdmin = true;
+    const lp = ls.get("cot-demo-precios"); if (lp && lp.eq) { P = lp; hasCloudPrices = true; }
+    PROD = ls.get("cot-demo-productos") || [];
+    DB.savePrices = async obj => { ls.set("cot-demo-precios", obj); P = clone(obj); hasCloudPrices = true; renderAll(); };
+    DB.addProduct = async obj => { const id = "d" + Date.now(); PROD.push({ id, ...obj, f: new Date().toISOString() }); ls.set("cot-demo-productos", PROD); renderAll(); return id; };
+    DB.updateProduct = async (id, obj) => { const p = PROD.find(x => x.id === id); Object.assign(p, obj); ls.set("cot-demo-productos", PROD); renderAll(); };
+    DB.delProduct = async id => { PROD = PROD.filter(x => x.id !== id); ls.set("cot-demo-productos", PROD); renderAll(); };
+    DB.logout = async () => { toast("Modo demo: no hay sesión"); };
+    if (!nombre) { showLogin(); } else { showApp(); }
+    return;
+  }
+  const base = "https://www.gstatic.com/firebasejs/10.12.2/";
+  const [{ initializeApp }, A, F] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-auth.js"), import(base + "firebase-firestore.js")]);
+  const app = initializeApp(CONFIG.firebase);
+  const auth = A.getAuth(app);
+  let db;
+  try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
+  catch(e) { db = F.getFirestore(app); }
+  const precRef = F.doc(db, "config", "precios");
+  let unsub = [];
+  DB.login = (email, pass) => A.signInWithEmailAndPassword(auth, email, pass);
+  DB.logout = () => A.signOut(auth);
+  DB.savePrices = obj => F.setDoc(precRef, obj);
+  DB.addProduct = async obj => (await F.addDoc(F.collection(db, "productos"), { ...obj, f: F.serverTimestamp() })).id;
+  DB.updateProduct = (id, obj) => F.updateDoc(F.doc(db, "productos", id), obj);
+  DB.delProduct = id => F.deleteDoc(F.doc(db, "productos", id));
+  A.onAuthStateChanged(auth, user => {
+    unsub.forEach(u => u()); unsub = [];
+    if (!user) { showLogin(); return; }
+    isAdmin = (user.email || "").toLowerCase() === CONFIG.adminEmail.toLowerCase();
+    unsub.push(F.onSnapshot(precRef, s => { if (s.exists()) { P = s.data(); hasCloudPrices = true; } else { P = clone(DEF); hasCloudPrices = false; } if (!dirty) E = null; renderAll(); }, err => toast("No se pudieron leer los precios")));
+    unsub.push(F.onSnapshot(F.collection(db, "productos"), s => { PROD = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAll(); }, err => toast("No se pudieron leer los productos")));
+    showApp();
+  });
+}
+
+// ---------- login ----------
+let adminMode = false;
+function showLogin(){ $("login").classList.remove("hidden"); $("app").classList.add("hidden"); $("l-nombre").value = nombre; $("l-admin").classList.toggle("hidden", !adminMode); }
+function showApp(){ $("login").classList.add("hidden"); $("app").classList.remove("hidden"); renderAll(); }
+$("l-toggle").onclick = () => { adminMode = !adminMode; $("l-admin").classList.toggle("hidden", !adminMode); $("l-clave-lb").textContent = adminMode ? "Contraseña de administrador" : "Clave de la tienda"; $("l-toggle").textContent = adminMode ? "Entrar como vendedor" : "Entrar como administrador"; $("l-err").textContent = ""; };
+$("f-login").onsubmit = async e => {
+  e.preventDefault();
+  nombre = $("l-nombre").value.trim(); ls.set("cot-nombre", nombre);
+  if (DEMO) { showApp(); return; }
+  $("l-err").textContent = "";
+  try { await DB.login(adminMode ? $("l-mail").value.trim() : CONFIG.tiendaEmail, $("l-clave").value); $("l-clave").value = ""; }
+  catch(err) { $("l-err").textContent = "Clave incorrecta o sin conexión."; }
+};
+$("salir").onclick = () => DB.logout();
+
+// ---------- helpers de datos ----------
+const eqAll = () => P.eq || [];
+const tiAll = () => P.ti || [];
+const models = () => [...new Set(tiAll().map(t => t.m))];
+const banco = n => (P.bancos || []).find(b => b.n === n);
+const ifl = n => (P.ifl || []).includes(n);
+const acPlans = e => [e.dp ? ["dp", e.dp] : null, e.d ? ["d", e.d] : null].filter(Boolean);
+const isMadre = () => S.cart.some(i => MADRE.includes(i.cat));
+const allowed = (bn, madre) => { const b = banco(bn); return b ? parseTramos(madre ? b.madre : b.sin) : [1]; };
+const chipsN = list => { const c = list.filter(n => COMMON.includes(n)); return c.length ? c : list; };
+
+// ---------- cotizar ----------
+function searchItems(q){
+  q = q.toLowerCase().trim(); if (!q) return [];
+  const a = eqAll().map((e, i) => ({ key: "eq:" + i, n: e.n, p: e.p, cat: e.cat })).filter(x => x.n.toLowerCase().includes(q));
+  const b = PROD.map(p => ({ key: "pr:" + p.id, n: p.n, p: p.p, cat: p.cat, por: p.por })).filter(x => String(x.n).toLowerCase().includes(q));
+  return [...b, ...a].slice(0, 8);
+}
+function addToCart(it){
+  const ex = S.cart.find(c => c.key === it.key);
+  if (ex) ex.q++; else S.cart.push({ key: it.key, n: it.n, p: it.p || 0, cat: it.cat, q: 1 });
+  if (it.key.startsWith("eq:") && S.ac < 0) { const i = +it.key.slice(3); if (acPlans(eqAll()[i]).length) S.ac = i; }
+  S.q = ""; $("c-q").value = ""; cot(); toast(it.n + " agregado");
+}
+function renderSearch(){
+  const q = S.q.trim(); const r = searchItems(q);
+  const exact = r.length > 0;
+  let h = "";
+  if (q) {
+    h = `<div class="res">` + r.map((x, k) => `<div class="r"><span><b>${esc(x.n)}</b>${ifl(x.n) ? '<span class="tag g">iPhone for Life</span>' : ""}<small>${esc(x.cat)} · ${x.p ? clp(x.p) : "sin precio"}${x.por ? " · creado por " + esc(x.por) : ""}</small></span><button class="plus" data-add="${k}" aria-label="Agregar ${esc(x.n)}">+</button></div>`).join("");
+    if (!exact) h += `<div class="r" style="display:block"><b>No existe. Crear "${esc(q)}"</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><input id="c-np-p" inputmode="numeric" placeholder="Precio" style="flex:1 1 120px"><select id="c-np-cat" style="flex:1 1 120px">${CATS.map(c => `<option${c === "Accesorio" ? " selected" : ""}>${c}</option>`).join("")}</select><button class="acc" id="c-np-go" style="flex:1 1 140px">Crear y agregar</button></div></div>`;
+    h += `</div>`;
+  }
+  $("c-res").innerHTML = h;
+  $("c-res").querySelectorAll("[data-add]").forEach(b => b.onclick = () => addToCart(r[+b.dataset.add]));
+  const go = $("c-np-go");
+  if (go) go.onclick = async () => {
+    const p = num($("c-np-p").value), cat = $("c-np-cat").value;
+    if (!p) { toast("Escribe el precio"); return; }
+    let id;
+    try { id = await DB.addProduct({ n: q.slice(0, 79), p, cat, por: nombre || "Vendedor" }); } catch(e) { toast("No se pudo guardar"); return; }
+    S.cart.push({ key: "pr:" + id, n: q, p, cat, q: 1 }); S.q = ""; $("c-q").value = ""; cot(); toast("Producto creado para todos");
+  };
+}
+function renderCart(){
+  if (!S.cart.length) { $("c-cart").innerHTML = `<p class="note">Busca un equipo o accesorio para empezar.</p>`; return; }
+  $("c-cart").innerHTML = S.cart.map((c, i) => `<div class="ci"><span><b>${esc(c.n)}</b>${ifl(c.n) ? '<span class="tag g">iPhone for Life</span>' : ""}<small>${MADRE.includes(c.cat) ? "Producto madre" : esc(c.cat)}</small></span><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><input data-price="${i}" inputmode="numeric" value="${c.p ? c.p.toLocaleString("es-CL") : ""}" placeholder="Precio" aria-label="Precio de ${esc(c.n)}"><span class="qty"><button data-dec="${i}" aria-label="Quitar uno">−</button><b>${c.q}</b><button data-inc="${i}" aria-label="Agregar uno">+</button></span></span></div>`).join("");
+  $("c-cart").querySelectorAll("[data-inc]").forEach(b => b.onclick = () => { S.cart[+b.dataset.inc].q++; cot(); });
+  $("c-cart").querySelectorAll("[data-dec]").forEach(b => b.onclick = () => { const c = S.cart[+b.dataset.dec]; c.q--; if (c.q < 1) S.cart.splice(+b.dataset.dec, 1); cot(); });
+  $("c-cart").querySelectorAll("[data-price]").forEach(inp => { inp.oninput = () => { S.cart[+inp.dataset.price].p = num(inp.value); calc(); }; inp.onblur = () => cot(); });
+}
+function renderSug(){
+  const accs = PROD.filter(p => p.cat === "Accesorio" && !S.cart.some(c => c.key === "pr:" + p.id)).slice(0, 4);
+  if (!isMadre()) { $("c-sug").innerHTML = ""; return; }
+  if (!accs.length) { $("c-sug").innerHTML = S.cart.some(c => c.cat === "Accesorio") ? "" : "Tip: crea accesorios (funda, lámina, cargador) y te los sugiero aquí para subir el UPB."; return; }
+  $("c-sug").innerHTML = "Súmale a la boleta: " + accs.map((p, k) => `<button data-s="${k}">+ ${esc(p.n)} ${clp(p.p)}</button>`).join("");
+  $("c-sug").querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const p = accs[+b.dataset.s]; addToCart({ key: "pr:" + p.id, n: p.n, p: p.p, cat: p.cat }); });
+}
+function fillSelects(){
+  // AppleCare
+  const groups = {}; eqAll().forEach((e, i) => { if (acPlans(e).length) (groups[e.cat] = groups[e.cat] || []).push([e, i]); });
+  $("a-eq").innerHTML = `<option value="-1">Sin AppleCare</option>` + Object.entries(groups).map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(([e, i]) => `<option value="${i}"${i === S.ac ? " selected" : ""}>${esc(e.n)}</option>`).join("")}</optgroup>`).join("");
+  const e = eqAll()[S.ac];
+  const pls = e ? acPlans(e) : [];
+  if (S.acPlan !== "no" && !pls.some(p => p[0] === S.acPlan)) S.acPlan = "no";
+  $("a-plan").innerHTML = e ? [...pls, ["no", 0]].map(([k, v]) => `<button data-p="${k}" class="${k === S.acPlan ? "on" : ""}">${k === "no" ? "No lo lleva" : PL[k] + " · " + clp(v)}</button>`).join("") : "";
+  const nAc = Math.max(...allowed(S.banco, isMadre()), 1);
+  $("a-up").textContent = e && S.acPlan === "no" && pls.length ? `Dile al cliente: por solo ${clp(pls[pls.length - 1][1] / Math.min(nAc, 12))} más al mes queda protegido.` : "";
+  // Trade in
+  const ms = models(); if (!ms.includes(S.tiModel)) S.tiModel = ms[0];
+  $("t-model").innerHTML = ms.map(m => `<option${m === S.tiModel ? " selected" : ""}>${esc(m)}</option>`).join("");
+  const caps = tiAll().map((t, i) => [t, i]).filter(([t]) => t.m === S.tiModel);
+  if (!caps.some(([, i]) => i === S.ti)) S.ti = caps[0] ? caps[0][1] : -1;
+  $("t-cap").innerHTML = caps.map(([t, i]) => `<button data-i="${i}" class="${i === S.ti ? "on" : ""}">${esc(t.c)}</button>`).join("");
+  document.querySelectorAll("#t-grado button").forEach(b => b.classList.toggle("on", b.dataset.g === S.g));
+  $("t-on").checked = S.tiOn; $("p-ti").classList.toggle("off", !S.tiOn);
+  // Onsafe
+  const cand = S.cart.map((c, i) => [c, i]).filter(([c]) => (P.os || []).some(o => o.cat === c.cat));
+  if (!cand.length) { $("o-body").innerHTML = `<p class="note">Agrega un equipo con precio para ver los planes Onsafe.</p>`; S.osPlan = "no"; }
+  else {
+    if (!cand.some(([, i]) => i === S.osItem)) S.osItem = cand[0][1];
+    const it = S.cart[S.osItem]; const t = osTier(it);
+    if (!t) S.osPlan = "no";
+    $("o-body").innerHTML = (cand.length > 1 ? `<label for="o-item">Equipo</label><select id="o-item">${cand.map(([c, i]) => `<option value="${i}"${i === S.osItem ? " selected" : ""}>${esc(c.n)}</option>`).join("")}</select>` : "") +
+      (t ? `<div class="seg">${[["24", t.p24], ["12", t.p12], ["no", 0]].map(([k, v]) => `<button data-o="${k}" class="${k === S.osPlan ? "on" : ""}">${k === "no" ? "No lo lleva" : "Plan " + k + " meses · " + clp(v)}</button>`).join("")}</div>` : `<p class="note">No hay tramo Onsafe cargado para ${esc(it.cat)} a ${clp(it.p)}. El administrador lo agrega en Precios.</p>`);
+    const sel = $("o-item"); if (sel) sel.onchange = () => { S.osItem = +sel.value; S.osPlan = "no"; cot(); };
+    $("o-body").querySelectorAll("[data-o]").forEach(b => b.onclick = () => { S.osPlan = b.dataset.o; cot(); });
+  }
+  // Pago
+  $("b-banco").innerHTML = [...(P.bancos || []).map(b => b.n), "Otro / Débito"].map(b => `<button data-b="${esc(b)}" class="${b === S.banco ? "on" : ""}">${esc(b)}</button>`).join("");
+  const al = banco(S.banco) ? allowed(S.banco, isMadre()) : [1];
+  if (!al.includes(S.n)) S.n = Math.max(...al);
+  $("b-n").innerHTML = chipsN(al).map(n => `<button data-n="${n}" class="${n === S.n ? "on" : ""}">${n === 1 ? "Contado" : n + " cuotas"}</button>`).join("");
+  const b = banco(S.banco);
+  $("b-warn").innerHTML = !b ? `<div class="warn">Con otros bancos o débito se cotiza al contado. Las cuotas con interés dependen del banco del cliente.</div>` :
+    `<div class="warn">${esc(S.banco)} · ${isMadre() ? "con producto madre" : "sin producto madre"}: sin interés en ${esc(isMadre() ? b.madre : b.sin)} cuotas.${/chile|edwards/i.test(S.banco) ? " Otro número de cuotas va con interés." : ""}</div>`;
+}
+function osTier(it){ if (!it || !it.p) return null; return (P.os || []).find(o => o.cat === it.cat && it.p >= o.min && it.p <= o.max) || null; }
+let lastText = "";
+function calc(){
+  const L = [];
+  S.cart.forEach(c => L.push([c.n + (c.q > 1 ? " x" + c.q : ""), c.p * c.q, c.p ? "" : "falta precio"]));
+  const e = eqAll()[S.ac]; const ac = e && S.acPlan !== "no" ? e[S.acPlan] : 0;
+  if (ac) L.push([`AppleCare+ ${PL[S.acPlan].toLowerCase()} (${e.n})`, ac]);
+  const t = osTier(S.cart[S.osItem]); const os = t && S.osPlan !== "no" ? (S.osPlan === "24" ? t.p24 : t.p12) : 0;
+  if (os) L.push([`Onsafe ${S.osPlan} meses`, os]);
+  const ti = tiAll()[S.ti]; const cred = S.tiOn && ti ? (S.g === "a" ? ti.a : ti.b) : 0;
+  if (cred) L.push([`Trade In ${ti.m} ${ti.c} (Grado ${S.g.toUpperCase()})`, -cred]);
+  const sub = S.cart.reduce((s, c) => s + c.p * c.q, 0) + ac + os;
+  const total = Math.max(0, sub - cred);
+  const units = S.cart.reduce((s, c) => s + c.q, 0) + (ac ? 1 : 0) + (os ? 1 : 0);
+  const al = banco(S.banco) ? allowed(S.banco, isMadre()) : [1];
+  const n = al.includes(S.n) ? S.n : 1;
+  $("r-lines").innerHTML = L.length ? L.map(([a, b, x]) => `<div class="ln${b < 0 ? " neg" : ""}"><span>${esc(a)}</span><span>${x ? esc(x) : b < 0 ? "−" + clp(-b) : clp(b)}</span></div>`).join("") : `<div class="empty">Todavía no hay productos.</div>`;
+  $("r-total").textContent = clp(total); $("m-total").textContent = clp(total);
+  const cTxt = n > 1 ? `${n} cuotas de ${clp(total / n)} sin interés` : "Pago contado";
+  $("r-cuota").textContent = cTxt; $("m-cuota").textContent = cTxt;
+  $("r-upb").textContent = units ? units + (units === 1 ? " unidad" : " unidades") : "";
+  $("r-qs").innerHTML = total ? chipsN(al).filter(x => x > 1).map(x => `<div>${x} cuotas<b>${clp(total / x)}</b></div>`).join("") : "";
+  if (cred) {
+    const g = Math.floor(cred / 100000), r = cred % 100000;
+    $("r-gc").style.display = "";
+    $("r-gc").textContent = `Gift cards del trade in: ${g ? g + " de $100.000" : ""}${g && r ? " + " : ""}${r ? "1 de " + clp(r) : ""}. ` + (sub < cred ? `El trade in cubre todo y sobran ${clp(cred - sub)} a favor del cliente.` : `Saldo con débito o crédito: ${clp(total)}.`);
+  } else $("r-gc").style.display = "none";
+  const hoy = new Date().toLocaleDateString("es-CL"); $("r-fecha").textContent = hoy;
+  lastText = ["Cotización " + hoy, ...L.map(([a, b, x]) => `${a}: ${x || (b < 0 ? "-" + clp(-b) : clp(b))}`), `Total: ${clp(total)}`, cTxt + (banco(S.banco) ? " con " + S.banco : "")].join("\n");
+}
+function cot(){ renderSearch(); renderCart(); renderSug(); fillSelects(); calc(); }
+
+$("c-q").oninput = e => { S.q = e.target.value; renderSearch(); };
+$("a-eq").onchange = e => { S.ac = +e.target.value; S.acPlan = "no"; cot(); };
+$("a-plan").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.acPlan = b.dataset.p; cot(); };
+$("t-on").onchange = e => { S.tiOn = e.target.checked; cot(); };
+$("t-model").onchange = e => { S.tiModel = e.target.value; S.ti = -1; cot(); };
+$("t-cap").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.ti = +b.dataset.i; cot(); };
+$("t-grado").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.g = b.dataset.g; cot(); };
+$("b-banco").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.banco = b.dataset.b; S.n = 99; cot(); };
+$("b-n").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.n = +b.dataset.n; cot(); };
+$("r-copy").onclick = async () => { try { await navigator.clipboard.writeText(lastText); toast("Cotización copiada"); } catch(e) { toast("No se pudo copiar"); } };
+$("r-new").onclick = () => { Object.assign(S, { cart: [], ac: -1, acPlan: "no", osItem: 0, osPlan: "no", tiOn: false, g: "a", q: "" }); $("c-q").value = ""; cot(); toast("Cotización nueva"); };
+
+// ---------- cuotas ----------
+function renderQ(){
+  $("q-banco").innerHTML = (P.bancos || []).map(b => `<button data-b="${esc(b.n)}" class="${b.n === S.qBanco ? "on" : ""}">${esc(b.n)}</button>`).join("");
+  if (!banco(S.qBanco) && P.bancos && P.bancos[0]) S.qBanco = P.bancos[0].n;
+  document.querySelectorAll("#q-tipo button").forEach(b => b.classList.toggle("on", b.dataset.t === S.qTipo));
+  const m = num($("q-monto").value); const al = allowed(S.qBanco, S.qTipo === "madre"); const mx = Math.max(...al);
+  $("q-res").innerHTML = !m ? `<p class="note">Escribe el monto para ver las cuotas.</p>` :
+    `<div class="boleta" style="position:static"><div class="h"><span>Máximo sin interés con ${esc(S.qBanco)}</span></div><div class="big" style="font-size:44px;color:var(--acc)">${mx} x ${clp(m / mx)}</div>
+    <div class="qs">${chipsN(al).filter(x => x > 1).map(x => `<div>${x} cuotas<b>${clp(m / x)}</b></div>`).join("")}</div>
+    ${/chile|edwards/i.test(S.qBanco) ? `<div class="warn">Solo ${esc(S.qTipo === "madre" ? banco(S.qBanco).madre : banco(S.qBanco).sin)} sin interés. Otro número de cuotas va con interés.</div>` : `<p class="note">Sin interés de ${esc(S.qTipo === "madre" ? banco(S.qBanco).madre : banco(S.qBanco).sin)} cuotas.</p>`}</div>`;
+}
+$("q-monto").oninput = renderQ;
+$("q-monto").onblur = e => { const v = num(e.target.value); e.target.value = v ? v.toLocaleString("es-CL") : ""; };
+$("q-banco").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.qBanco = b.dataset.b; renderQ(); };
+$("q-tipo").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.qTipo = b.dataset.t; renderQ(); };
+
+// ---------- trade in ----------
+function renderTI(){
+  const f = $("ti-q").value.toLowerCase().trim();
+  $("ti-list").innerHTML = models().filter(m => m.toLowerCase().includes(f)).map(m => {
+    const rows = tiAll().map((t, i) => [t, i]).filter(([t]) => t.m === m);
+    const open = S.tiOpen === m; const sel = open ? (rows.find(([, i]) => i === S.tiSel) || rows[0]) : null;
+    const max = Math.max(...rows.map(([t]) => t.a));
+    return `<div class="item${open ? " open" : ""}" data-m="${esc(m)}" tabindex="0"><div class="t"><b>${esc(m)}</b><span>hasta ${clp(max)}</span></div>${open ? `<div class="det">
+      <div class="seg">${rows.map(([t, i]) => `<button data-tc="${i}" class="${i === sel[1] ? "on" : ""}">${esc(t.c)}</button>`).join("")}</div>
+      <div class="grades"><div class="grade a"><small>Grado A</small><div class="big">${clp(sel[0].a)}</div></div><div class="grade"><small>Grado B</small><div class="big">${clp(sel[0].b)}</div></div></div>
+      <div class="acts"><button class="pri" data-use="${sel[1]}">Usar en cotización</button></div></div>` : ""}</div>`;
+  }).join("") || `<p class="note">Sin resultados</p>`;
+}
+$("ti-q").oninput = renderTI;
+$("ti-list").onclick = e => {
+  const u = e.target.closest("[data-use]"); if (u) { const t = tiAll()[+u.dataset.use]; S.tiModel = t.m; S.ti = +u.dataset.use; S.tiOn = true; cot(); go("cotizar"); toast("Trade In cargado"); return; }
+  const c = e.target.closest("[data-tc]"); if (c) { S.tiSel = +c.dataset.tc; renderTI(); return; }
+  const it = e.target.closest(".item"); if (!it || e.target.closest(".det")) return; S.tiOpen = S.tiOpen === it.dataset.m ? "" : it.dataset.m; S.tiSel = -1; renderTI();
+};
+
+// ---------- applecare ----------
+function renderAC(){
+  const cs = [...new Set(eqAll().filter(e => acPlans(e).length).map(e => e.cat))]; if (!cs.includes(S.acCat)) S.acCat = cs[0];
+  $("ac-cat").innerHTML = cs.map(c => `<button class="${c === S.acCat ? "on" : ""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  const f = $("ac-q").value.toLowerCase().trim();
+  $("ac-list").innerHTML = eqAll().map((e, i) => [e, i]).filter(([e]) => acPlans(e).length && (f ? true : e.cat === S.acCat) && e.n.toLowerCase().includes(f)).map(([e, i]) => {
+    const pls = acPlans(e); const open = S.acOpen === i;
+    return `<div class="item${open ? " open" : ""}" data-i="${i}" tabindex="0"><div class="t"><b>${esc(e.n)}${ifl(e.n) ? '<span class="tag g">iPhone for Life</span>' : ""}</b><span>${pls.length === 2 ? "2 planes" : "Solo daños"}</span></div>${open ? `<div class="det">${pls.map(([k, v]) => `<div class="plan"><div class="pt"><span>${PL[k]}</span><span class="num">${clp(v)}</span></div><div class="qs">${[3, 6, 12].map(x => `<div>${x} cuotas<b>${clp(v / x)}</b></div>`).join("")}</div></div>`).join("")}
+      <div class="acts"><button class="pri" data-use="${i}">Usar en cotización</button></div></div>` : ""}</div>`;
+  }).join("") || `<p class="note">Sin resultados</p>`;
+}
+$("ac-q").oninput = renderAC;
+$("ac-cat").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.acCat = b.dataset.c; S.acOpen = -1; $("ac-q").value = ""; renderAC(); };
+$("ac-list").onclick = e => {
+  const u = e.target.closest("[data-use]"); if (u) { S.ac = +u.dataset.use; const p = acPlans(eqAll()[S.ac]); S.acPlan = p[0] ? p[0][0] : "no"; cot(); go("cotizar"); toast("AppleCare+ cargado"); return; }
+  const it = e.target.closest(".item"); if (!it || e.target.closest(".det")) return; const i = +it.dataset.i; S.acOpen = S.acOpen === i ? -1 : i; renderAC();
+};
+
+// ---------- productos ----------
+function renderProd(){
+  $("np-cat").innerHTML = CATS.map(c => `<button data-c="${c}" class="${c === S.npCat ? "on" : ""}">${c}</button>`).join("");
+  const f = $("pr-q").value.toLowerCase().trim();
+  const list = PROD.filter(p => String(p.n).toLowerCase().includes(f)).sort((a, b) => String(a.n).localeCompare(String(b.n)));
+  $("pr-list").innerHTML = list.map(p => `<tr><td><b>${esc(p.n)}</b></td><td>${esc(p.cat)}</td><td class="num">${isAdmin ? `<input data-pp="${esc(p.id)}" value="${(+p.p || 0).toLocaleString("es-CL")}" inputmode="numeric" style="width:120px;text-align:right">` : clp(p.p)}</td><td>${esc(p.por)}<br><small style="color:var(--mute)">${fecha(p.f)}</small></td><td>${isAdmin ? `<button data-pd="${esc(p.id)}" aria-label="Borrar ${esc(p.n)}">Borrar</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="5" class="note">Todavía no hay productos creados.</td></tr>`;
+}
+$("pr-q").oninput = renderProd;
+$("np-cat").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.npCat = b.dataset.c; renderProd(); };
+$("np-save").onclick = async () => {
+  const n = $("np-n").value.trim(), p = num($("np-p").value);
+  if (!n || !p) { toast("Falta nombre o precio"); return; }
+  if (PROD.some(x => String(x.n).toLowerCase() === n.toLowerCase())) { toast("Ese producto ya existe"); return; }
+  try { await DB.addProduct({ n: n.slice(0, 79), p, cat: S.npCat, por: nombre || "Vendedor" }); $("np-n").value = ""; $("np-p").value = ""; toast("Producto creado para todos"); } catch(e) { toast("No se pudo guardar"); }
+};
+$("pr-list").addEventListener("change", async e => { const id = e.target.dataset.pp; if (!id) return; try { await DB.updateProduct(id, { p: num(e.target.value) }); toast("Precio actualizado"); } catch(err) { toast("No se pudo guardar"); } });
+$("pr-list").addEventListener("click", async e => { const b = e.target.closest("[data-pd]"); if (!b) return; if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "¿Seguro?"; return; } try { await DB.delProduct(b.dataset.pd); toast("Producto borrado"); } catch(err) { toast("No se pudo borrar"); } });
+
+// ---------- guía ----------
+function renderGuia(){
+  $("g-bancos").innerHTML = (P.bancos || []).map(b => `<tr><td>${esc(b.n)}</td><td>${esc(b.madre)}</td><td>${esc(b.sin)}</td></tr>`).join("");
+  $("g-ifl").textContent = (P.ifl || []).join(", ");
+}
+
+// ---------- admin precios ----------
+const COLS = { bancos: [["n", 0], ["madre", 0], ["sin", 0]], eq: [["cat", 0], ["n", 0], ["p", 1], ["dp", 1], ["d", 1]], os: [["cat", 0], ["min", 1], ["max", 1], ["p24", 1], ["p12", 1]], ti: [["m", 0], ["c", 0], ["a", 1], ["b", 1]] };
+const NEW = { bancos: { n: "Nuevo banco", madre: "1-12", sin: "1-6" }, eq: { cat: "iPhone", n: "Nuevo equipo", p: 0, dp: 0, d: 0 }, os: { cat: "iPhone", min: 0, max: 0, p24: 0, p12: 0 }, ti: { m: "Nuevo modelo", c: "128 GB", a: 0, b: 0 } };
+function renderAdmin(){
+  $("tab-precios").classList.toggle("hidden", !isAdmin);
+  if (!isAdmin) return;
+  if (!E) E = clone(P);
+  $("pa-vig").value = E.vig || ""; $("pa-ifl").value = (E.ifl || []).join(", ");
+  for (const k in COLS) $("pa-" + k).innerHTML = (E[k] || []).map((r, i) => `<tr>${COLS[k].map(([f, n]) => `<td><input data-k="${k}" data-i="${i}" data-f="${f}" value="${esc(n ? (r[f] ? (+r[f]).toLocaleString("es-CL") : "") : r[f])}"${n ? ' inputmode="numeric" style="text-align:right;min-width:100px"' : ' style="min-width:120px"'}></td>`).join("")}<td><button data-del="${k}" data-i="${i}" aria-label="Borrar fila">✕</button></td></tr>`).join("");
+  $("pa-save").disabled = !dirty && hasCloudPrices; $("pa-undo").disabled = !dirty;
+  $("pa-save").textContent = hasCloudPrices ? "Guardar en la nube" : "Cargar precios iniciales en la nube";
+}
+const markDirty = () => { dirty = true; $("pa-save").disabled = false; $("pa-undo").disabled = false; };
+$("v-precios").addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "pa-vig") E.vig = t.value.trim();
+  else if (t.id === "pa-ifl") E.ifl = t.value.split(",").map(s => s.trim()).filter(Boolean);
+  else if (t.dataset.k) { const row = E[t.dataset.k][+t.dataset.i]; const isNum = COLS[t.dataset.k].find(c => c[0] === t.dataset.f)[1]; row[t.dataset.f] = isNum ? num(t.value) : t.value.trim(); if (t.dataset.k === "ti" && t.dataset.f === "a" && !row.b) { row.b = Math.round(row.a * 0.7); renderAdmin(); } }
+  else return;
+  markDirty();
+});
+$("v-precios").addEventListener("click", e => {
+  const d = e.target.closest("[data-del]"); if (d) { E[d.dataset.del].splice(+d.dataset.i, 1); markDirty(); renderAdmin(); return; }
+  const a = e.target.closest("[data-add]"); if (a) { (E[a.dataset.add] = E[a.dataset.add] || []).push(clone(NEW[a.dataset.add])); markDirty(); renderAdmin(); }
+});
+$("pa-save").onclick = async () => { try { $("pa-save").disabled = true; await DB.savePrices(clone(E)); dirty = false; E = null; toast("Precios guardados para todos"); renderAll(); } catch(err) { toast("No se pudo guardar. ¿Entraste como administrador?"); $("pa-save").disabled = false; } };
+$("pa-undo").onclick = () => { dirty = false; E = null; renderAdmin(); toast("Cambios descartados"); };
+
+// ---------- general ----------
+const go = v => document.querySelector(`#tabs [data-v="${v}"]`).click();
+$("tabs").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id === "v-" + b.dataset.v));
+  document.querySelector(".mini").style.visibility = b.dataset.v === "cotizar" ? "" : "hidden";
+  window.scrollTo(0, 0);
+};
+document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("item")) { e.preventDefault(); e.target.click(); } });
+function renderAll(){
+  $("vigencia").textContent = (P.vig || "") + (DEMO ? " · modo demo" : "");
+  $("who").textContent = (nombre || "Vendedor") + (isAdmin ? " · admin" : "");
+  cot(); renderQ(); renderTI(); renderAC(); renderProd(); renderGuia(); renderAdmin();
+}
+if ("serviceWorker" in navigator && location.protocol === "https:" && !location.hostname.endsWith("claude.ai") && !location.hostname.includes("claudeusercontent")) navigator.serviceWorker.register("sw.js").catch(() => {});
+initBackend().catch(err => { document.body.insertAdjacentHTML("afterbegin", `<p style="padding:16px;background:#fee;color:#900">No se pudo conectar con Firebase. Revisa la configuración en index.html.</p>`); });
+}
+</script>
+</body>
+</html>
